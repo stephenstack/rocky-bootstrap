@@ -1,0 +1,18 @@
+# Local logs
+*.log
+bootstrap.log
+
+# Editor noise
+.vscode/
+.idea/
+*.swp
+*~
+
+# OS noise
+.DS_Store
+Thumbs.db
+
+# Local overrides — keep secrets/tokens out of the repo
+files/secrets/
+*.local
+.env

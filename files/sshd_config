@@ -1,0 +1,52 @@
+# Hardened sshd_config for Rocky Linux 9.
+#
+# WARNING: this disables password authentication. Before deploying, make sure:
+#   1. The admin user exists and has your public key in ~/.ssh/authorized_keys
+#   2. You can open a second SSH session to test before closing your current one
+#
+# Reviewed against CIS Benchmark for RHEL 9 (selected hardening items).
+
+# --- Listen ---
+Port 22
+AddressFamily any
+ListenAddress 0.0.0.0
+ListenAddress ::
+
+# --- Protocol and crypto ---
+Protocol 2
+HostKey /etc/ssh/ssh_host_rsa_key
+HostKey /etc/ssh/ssh_host_ecdsa_key
+HostKey /etc/ssh/ssh_host_ed25519_key
+
+# --- Authentication ---
+PermitRootLogin no
+PasswordAuthentication no
+PermitEmptyPasswords no
+ChallengeResponseAuthentication no
+KbdInteractiveAuthentication no
+PubkeyAuthentication yes
+AuthenticationMethods publickey
+MaxAuthTries 3
+MaxSessions 10
+LoginGraceTime 30
+
+# --- Session / environment ---
+PermitUserEnvironment no
+ClientAliveInterval 300
+ClientAliveCountMax 2
+TCPKeepAlive no
+X11Forwarding no
+AllowAgentForwarding yes
+AllowTcpForwarding yes
+PrintMotd yes
+UseDNS no
+
+# --- Logging ---
+SyslogFacility AUTHPRIV
+LogLevel VERBOSE
+
+# --- Subsystems ---
+Subsystem sftp /usr/libexec/openssh/sftp-server
+
+# --- Crypto policy is managed system-wide on Rocky 9 via update-crypto-policies.
+#     Override here only if you have a specific reason.

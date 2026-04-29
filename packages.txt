@@ -1,0 +1,47 @@
+# Core packages installed by scripts/base.sh on every host.
+# One package per line. Lines starting with # are ignored.
+
+# --- shell + editing ---
+vim-enhanced
+nano
+bash-completion
+tmux
+
+# --- networking + diagnostics ---
+curl
+wget
+bind-utils
+net-tools
+nmap-ncat
+tcpdump
+traceroute
+mtr
+
+# --- system tools ---
+htop
+iotop
+lsof
+strace
+sysstat
+psmisc
+which
+
+# --- archive / transfer ---
+tar
+unzip
+zip
+rsync
+
+# --- security / firewall ---
+firewalld
+fail2ban
+policycoreutils-python-utils
+
+# --- repos + build basics ---
+epel-release
+dnf-plugins-core
+git
+make
+
+# --- chrony for time sync (Rocky ships it but make it explicit) ---
+chrony

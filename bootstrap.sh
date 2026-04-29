@@ -74,19 +74,31 @@ ensure_repo() {
         exit 1
     fi
 
+    if [[ "$BOOTSTRAP_REFRESH" == "1" && -d "$BOOTSTRAP_DIR" ]]; then
+        echo "[bootstrap] BOOTSTRAP_REFRESH=1 — wiping ${BOOTSTRAP_DIR}"
+        rm -rf "$BOOTSTRAP_DIR"
+    fi
+
     echo "[bootstrap] piped invocation — fetching repo to ${BOOTSTRAP_DIR}"
     install -d -m 0755 "${BOOTSTRAP_DIR}/scripts" "${BOOTSTRAP_DIR}/files"
 
+    # Cache-bust GitHub's Fastly CDN by appending a per-run timestamp and
+    # asking curl to send no-cache headers. Without this, raw.githubusercontent.com
+    # can serve a stale copy for up to ~5 minutes after a push.
+    local cb="?cb=$(date +%s)"
     local rel dst
     for rel in "${REPO_FILES[@]}"; do
         dst="${BOOTSTRAP_DIR}/${rel}"
-        if [[ -f "$dst" && -s "$dst" ]]; then
-            echo "[bootstrap]   skip (cached): ${rel}"
+        if [[ "$BOOTSTRAP_REFRESH" != "1" && -f "$dst" && -s "$dst" ]]; then
+            echo "[bootstrap]   skip (cached on disk): ${rel}"
             continue
         fi
         echo "[bootstrap]   fetch: ${rel}"
         install -d -m 0755 "$(dirname "$dst")"
-        curl -fsSL "${REPO_RAW_BASE}/${rel}" -o "${dst}" \
+        curl -fsSL \
+             -H 'Cache-Control: no-cache' \
+             -H 'Pragma: no-cache' \
+             "${REPO_RAW_BASE}/${rel}${cb}" -o "${dst}" \
             || { echo "[bootstrap] failed to fetch ${rel}" >&2; exit 1; }
     done
     chmod +x "${BOOTSTRAP_DIR}/bootstrap.sh" 2>/dev/null || true
@@ -143,6 +155,7 @@ Environment overrides:
   NTP_SERVERS="ie.pool.ntp.org ntp1.tcd.ie ntp2.tcd.ie"  chrony servers
   REPO_RAW_BASE=...             override the raw.githubusercontent base URL
   BOOTSTRAP_DIR=/opt/rocky-bootstrap  where to materialise the repo
+  BOOTSTRAP_REFRESH=1           wipe cache + bust CDN before re-fetching
   APP_DIR=/var/www/laravel      app directory used by laravel role
   APP_DOMAIN=_                  nginx server_name for laravel role
   PROMETHEUS_REMOTE_WRITE_URL   used by monitoring role

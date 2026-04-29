@@ -9,6 +9,7 @@ Run a single entry-point script to provision common roles:
 - **web** — Nginx with sane defaults
 - **monitoring** — Grafana Alloy agent (placeholder, edit endpoints)
 - **laravel** — PHP 8.3 + Composer + Nginx site stub
+- **nodejs** — Node.js (latest LTS, auto-detected from `nodejs.org/dist/index.json`) via NodeSource. Override with `NODE_MAJOR_OVERRIDE=20`.
 - **bashrc** — curated `~/.bashrc` (PATH, NVM, conditional eza/zoxide/fzf, project aliases). Run before `starship`.
 - **starship** — Starship prompt + FiraCode Nerd Font + `~/.bashrc` wiring
 - **motd** — dynamic login banner (figlet hostname banner + conditional service summary). Run last so it can detect what's installed.
@@ -82,6 +83,7 @@ rocky-bootstrap/
     ├── install-web.sh         # Nginx
     ├── install-monitoring.sh  # Grafana Alloy (placeholder config)
     ├── install-laravel.sh     # PHP 8.3 + Composer + Laravel deps
+    ├── install-nodejs.sh      # Node.js (latest LTS auto-detected) via NodeSource
     ├── install-bashrc.sh      # curated ~/.bashrc with conditional integrations
     ├── install-starship.sh    # Starship prompt + FiraCode Nerd Font
     └── install-motd.sh        # /etc/profile.d/login.sh banner
@@ -98,7 +100,7 @@ rocky-bootstrap/
 ./bootstrap.sh -h | --help     # show help
 ```
 
-Valid roles: `base`, `docker`, `web`, `monitoring`, `laravel`, `bashrc`, `starship`, `motd`.
+Valid roles: `base`, `docker`, `web`, `monitoring`, `laravel`, `nodejs`, `bashrc`, `starship`, `motd`.
 
 You can chain them: `./bootstrap.sh base docker web`.
 

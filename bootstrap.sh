@@ -35,6 +35,7 @@ REPO_FILES=(
     scripts/install-web.sh
     scripts/install-monitoring.sh
     scripts/install-laravel.sh
+    scripts/install-nodejs.sh
     scripts/install-bashrc.sh
     scripts/install-starship.sh
     scripts/install-motd.sh
@@ -50,7 +51,7 @@ REPO_FILES=(
 #   - bashrc deploys ~/.bashrc cleanly first, so subsequent roles can append to it
 #   - starship runs after bashrc to append its init block at the end
 #   - motd runs LAST so it can interrogate which services are installed
-ALL_ROLES=(base docker web monitoring laravel bashrc starship motd)
+ALL_ROLES=(base docker web monitoring laravel nodejs bashrc starship motd)
 
 # --- bootstrapping ---
 
@@ -135,6 +136,7 @@ role_script() {
         web)        echo "${SCRIPTS_DIR}/install-web.sh" ;;
         monitoring) echo "${SCRIPTS_DIR}/install-monitoring.sh" ;;
         laravel)    echo "${SCRIPTS_DIR}/install-laravel.sh" ;;
+        nodejs)     echo "${SCRIPTS_DIR}/install-nodejs.sh" ;;
         bashrc)     echo "${SCRIPTS_DIR}/install-bashrc.sh" ;;
         starship)   echo "${SCRIPTS_DIR}/install-starship.sh" ;;
         motd)       echo "${SCRIPTS_DIR}/install-motd.sh" ;;
@@ -162,6 +164,7 @@ Roles:
   web         Nginx
   monitoring  Grafana Alloy agent (placeholder config)
   laravel     PHP 8.3, Composer, php-fpm, Nginx site stub
+  nodejs      Node.js (latest LTS auto-detected) via NodeSource
   bashrc      Curated ~/.bashrc (PATH, NVM, fzf, eza, zoxide, aliases)
   starship    Starship prompt + FiraCode Nerd Font + ~/.bashrc wiring
   motd        Dynamic login banner (figlet + conditional service summary)
@@ -174,6 +177,7 @@ Environment overrides:
   BOOTSTRAP_REFRESH=1           wipe cache + bust CDN before re-fetching
   APP_DIR=/var/www/laravel      app directory used by laravel role
   APP_DOMAIN=_                  nginx server_name for laravel role
+  NODE_MAJOR_OVERRIDE=22        pin nodejs to a specific major (default: latest LTS)
   PROMETHEUS_REMOTE_WRITE_URL   used by monitoring role
   LOKI_PUSH_URL                 used by monitoring role
 
@@ -230,9 +234,10 @@ Pick what to install. Enter:
   3) web          (Nginx)
   4) monitoring   (Grafana Alloy — edit endpoints!)
   5) laravel      (PHP 8.3 + Composer + Nginx site)
-  6) bashrc       (curated ~/.bashrc — run before starship)
-  7) starship     (Starship prompt + FiraCode Nerd Font)
-  8) motd         (login banner — run last for full service detection)
+  6) nodejs       (Node.js latest LTS via NodeSource)
+  7) bashrc       (curated ~/.bashrc — run before starship)
+  8) starship     (Starship prompt + FiraCode Nerd Font)
+  9) motd         (login banner — run last for full service detection)
   a) all
   q) quit
 
@@ -257,9 +262,10 @@ EOF
             3) selected+=(web) ;;
             4) selected+=(monitoring) ;;
             5) selected+=(laravel) ;;
-            6) selected+=(bashrc) ;;
-            7) selected+=(starship) ;;
-            8) selected+=(motd) ;;
+            6) selected+=(nodejs) ;;
+            7) selected+=(bashrc) ;;
+            8) selected+=(starship) ;;
+            9) selected+=(motd) ;;
             *) die "invalid selection: $n" ;;
         esac
     done

@@ -111,7 +111,7 @@ PHP
 
 step_nginx_site() {
     if ! command -v nginx >/dev/null 2>&1; then
-        warn "nginx not installed; install-web.sh has not run. Skipping site config."
+        warn "nginx not installed; skipping site config (install nginx manually if you need HTTP)"
         return 0
     fi
 

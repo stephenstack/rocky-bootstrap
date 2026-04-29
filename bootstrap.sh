@@ -32,7 +32,6 @@ REPO_FILES=(
     scripts/common.sh
     scripts/base.sh
     scripts/install-docker.sh
-    scripts/install-web.sh
     scripts/install-monitoring.sh
     scripts/install-laravel.sh
     scripts/install-nodejs.sh
@@ -52,7 +51,7 @@ REPO_FILES=(
 #   - bashrc deploys ~/.bashrc cleanly first, so subsequent roles can append to it
 #   - starship runs after bashrc to append its init block at the end
 #   - motd runs LAST so it can interrogate which services are installed
-ALL_ROLES=(base docker web monitoring laravel nodejs bashrc starship motd)
+ALL_ROLES=(base docker monitoring laravel nodejs bashrc starship motd)
 
 # OPTIONAL_ROLES are valid role names that are NOT part of `bootstrap.sh all`.
 # Usually because they conflict with another role (e.g. lamp brings its own
@@ -139,7 +138,6 @@ role_script() {
     case "$1" in
         base)       echo "${SCRIPTS_DIR}/base.sh" ;;
         docker)     echo "${SCRIPTS_DIR}/install-docker.sh" ;;
-        web)        echo "${SCRIPTS_DIR}/install-web.sh" ;;
         monitoring) echo "${SCRIPTS_DIR}/install-monitoring.sh" ;;
         laravel)    echo "${SCRIPTS_DIR}/install-laravel.sh" ;;
         nodejs)     echo "${SCRIPTS_DIR}/install-nodejs.sh" ;;
@@ -168,7 +166,6 @@ Curl-pipe form:
 Roles:
   base        SELinux off, projects dir, packages, EU/Dublin TZ + .ie NTP, firewalld, fail2ban
   docker      Docker CE + compose plugin
-  web         Nginx
   monitoring  Grafana Alloy agent (placeholder config)
   laravel     PHP 8.3, Composer, php-fpm, Nginx site stub
   nodejs      Node.js (latest LTS auto-detected) via NodeSource
@@ -243,14 +240,13 @@ Pick what to install. Enter:
 
   1) base         (always recommended first)
   2) docker
-  3) web          (Nginx)
-  4) monitoring   (Grafana Alloy — edit endpoints!)
-  5) laravel      (PHP 8.3 + Composer + Nginx site)
-  6) nodejs       (Node.js latest LTS via NodeSource)
-  7) bashrc       (curated ~/.bashrc — run before starship)
-  8) starship     (Starship prompt + FiraCode Nerd Font)
-  9) motd         (login banner — run last for full service detection)
- 10) lamp         (rConfig LAMP installer — conflicts with web/laravel)
+  3) monitoring   (Grafana Alloy — edit endpoints!)
+  4) laravel      (PHP 8.3 + Composer + php-fpm)
+  5) nodejs       (Node.js latest LTS via NodeSource)
+  6) bashrc       (curated ~/.bashrc — run before starship)
+  7) starship     (Starship prompt + FiraCode Nerd Font)
+  8) motd         (login banner — run last for full service detection)
+  9) lamp         (rConfig LAMP installer — conflicts with laravel)
   a) all          (excludes lamp)
   q) quit
 
@@ -272,14 +268,13 @@ EOF
         case "$n" in
             1) selected+=(base) ;;
             2) selected+=(docker) ;;
-            3) selected+=(web) ;;
-            4) selected+=(monitoring) ;;
-            5) selected+=(laravel) ;;
-            6) selected+=(nodejs) ;;
-            7) selected+=(bashrc) ;;
-            8) selected+=(starship) ;;
-            9) selected+=(motd) ;;
-            10) selected+=(lamp) ;;
+            3) selected+=(monitoring) ;;
+            4) selected+=(laravel) ;;
+            5) selected+=(nodejs) ;;
+            6) selected+=(bashrc) ;;
+            7) selected+=(starship) ;;
+            8) selected+=(motd) ;;
+            9) selected+=(lamp) ;;
             *) die "invalid selection: $n" ;;
         esac
     done

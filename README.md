@@ -6,9 +6,8 @@ Run a single entry-point script to provision common roles:
 
 - **base** — system updates, core packages, EPEL/CRB, dev tooling (fzf, zoxide, eza, btop, ripgrep, jq), Europe/Dublin TZ + .ie NTP, firewalld, fail2ban
 - **docker** — Docker CE + Compose plugin
-- **web** — Nginx with sane defaults
 - **monitoring** — Grafana Alloy agent (placeholder, edit endpoints)
-- **laravel** — PHP 8.3 + Composer + Nginx site stub
+- **laravel** — PHP 8.3 + Composer + php-fpm (drops an nginx site stub if nginx happens to be installed)
 - **nodejs** — Node.js (latest LTS, auto-detected from `nodejs.org/dist/index.json`) via NodeSource. Override with `NODE_MAJOR_OVERRIDE=20`.
 - **bashrc** — curated `~/.bashrc` (PATH, NVM, conditional eza/zoxide/fzf, project aliases). Run before `starship`.
 - **starship** — Starship prompt + FiraCode Nerd Font + `~/.bashrc` wiring
@@ -16,7 +15,7 @@ Run a single entry-point script to provision common roles:
 
 **Optional** (not part of `all` — call explicitly):
 
-- **lamp** — wraps the upstream [rConfig LAMP installer](https://dl.rconfig.com/downloads/rconfig8_centos9.sh). Conflicts with the `web` and `laravel` roles — run on its own host. Set `RCONFIG_DBPASS=...` for unattended MariaDB setup.
+- **lamp** — wraps the upstream [rConfig LAMP installer](https://dl.rconfig.com/downloads/rconfig8_centos9.sh). Conflicts with the `laravel` role — run on its own host. Set `RCONFIG_DBPASS=...` for unattended MariaDB setup.
 
 Designed to be idempotent: safe to re-run after a partial failure or on an already-provisioned host.
 
@@ -84,7 +83,6 @@ rocky-bootstrap/
     ├── common.sh              # shared helpers (logging, dnf wrappers, idempotency)
     ├── base.sh                # base system, EPEL/CRB, dev tools, TZ + NTP, firewall
     ├── install-docker.sh      # Docker CE + compose plugin
-    ├── install-web.sh         # Nginx
     ├── install-monitoring.sh  # Grafana Alloy (placeholder config)
     ├── install-laravel.sh     # PHP 8.3 + Composer + Laravel deps
     ├── install-nodejs.sh      # Node.js (latest LTS auto-detected) via NodeSource
@@ -105,7 +103,7 @@ rocky-bootstrap/
 ./bootstrap.sh -h | --help     # show help
 ```
 
-Valid roles (in `all`): `base`, `docker`, `web`, `monitoring`, `laravel`, `nodejs`, `bashrc`, `starship`, `motd`.
+Valid roles (in `all`): `base`, `docker`, `monitoring`, `laravel`, `nodejs`, `bashrc`, `starship`, `motd`.
 
 Optional (callable but not in `all`): `lamp`.
 

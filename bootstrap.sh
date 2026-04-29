@@ -35,18 +35,22 @@ REPO_FILES=(
     scripts/install-web.sh
     scripts/install-monitoring.sh
     scripts/install-laravel.sh
+    scripts/install-bashrc.sh
     scripts/install-starship.sh
     scripts/install-motd.sh
     packages.txt
     files/sshd_config
     files/motd
+    files/bashrc
     files/starship.toml
     files/login.sh
 )
 
-# motd is last on purpose — it interrogates /which services are installed
-# and renders different banner content depending on what it finds.
-ALL_ROLES=(base docker web monitoring laravel starship motd)
+# Order rationale:
+#   - bashrc deploys ~/.bashrc cleanly first, so subsequent roles can append to it
+#   - starship runs after bashrc to append its init block at the end
+#   - motd runs LAST so it can interrogate which services are installed
+ALL_ROLES=(base docker web monitoring laravel bashrc starship motd)
 
 # --- bootstrapping ---
 
@@ -131,6 +135,7 @@ role_script() {
         web)        echo "${SCRIPTS_DIR}/install-web.sh" ;;
         monitoring) echo "${SCRIPTS_DIR}/install-monitoring.sh" ;;
         laravel)    echo "${SCRIPTS_DIR}/install-laravel.sh" ;;
+        bashrc)     echo "${SCRIPTS_DIR}/install-bashrc.sh" ;;
         starship)   echo "${SCRIPTS_DIR}/install-starship.sh" ;;
         motd)       echo "${SCRIPTS_DIR}/install-motd.sh" ;;
         *)          return 1 ;;
@@ -157,6 +162,7 @@ Roles:
   web         Nginx
   monitoring  Grafana Alloy agent (placeholder config)
   laravel     PHP 8.3, Composer, php-fpm, Nginx site stub
+  bashrc      Curated ~/.bashrc (PATH, NVM, fzf, eza, zoxide, aliases)
   starship    Starship prompt + FiraCode Nerd Font + ~/.bashrc wiring
   motd        Dynamic login banner (figlet + conditional service summary)
 
@@ -224,8 +230,9 @@ Pick what to install. Enter:
   3) web          (Nginx)
   4) monitoring   (Grafana Alloy — edit endpoints!)
   5) laravel      (PHP 8.3 + Composer + Nginx site)
-  6) starship     (Starship prompt + FiraCode Nerd Font)
-  7) motd         (login banner — run last for full service detection)
+  6) bashrc       (curated ~/.bashrc — run before starship)
+  7) starship     (Starship prompt + FiraCode Nerd Font)
+  8) motd         (login banner — run last for full service detection)
   a) all
   q) quit
 
@@ -250,8 +257,9 @@ EOF
             3) selected+=(web) ;;
             4) selected+=(monitoring) ;;
             5) selected+=(laravel) ;;
-            6) selected+=(starship) ;;
-            7) selected+=(motd) ;;
+            6) selected+=(bashrc) ;;
+            7) selected+=(starship) ;;
+            8) selected+=(motd) ;;
             *) die "invalid selection: $n" ;;
         esac
     done

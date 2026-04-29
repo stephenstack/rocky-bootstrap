@@ -10,6 +10,7 @@ Run a single entry-point script to provision common roles:
 - **monitoring** — Grafana Alloy agent (placeholder, edit endpoints)
 - **laravel** — PHP 8.3 + Composer + Nginx site stub
 - **starship** — Starship prompt + FiraCode Nerd Font + `~/.bashrc` wiring
+- **motd** — dynamic login banner (figlet hostname banner + conditional service summary). Run last so it can detect what's installed.
 
 Designed to be idempotent: safe to re-run after a partial failure or on an already-provisioned host.
 
@@ -69,8 +70,9 @@ rocky-bootstrap/
 ├── .gitignore
 ├── files/                    # config files copied to target system
 │   ├── sshd_config           # hardened sshd config (review before deploying!)
-│   ├── motd                  # login banner
-│   └── starship.toml         # Starship prompt config (catppuccin_mocha)
+│   ├── motd                  # static login banner (legacy, cleared by motd role)
+│   ├── starship.toml         # Starship prompt config (catppuccin_mocha)
+│   └── login.sh              # dynamic login banner (deployed to /etc/profile.d/)
 └── scripts/
     ├── common.sh              # shared helpers (logging, dnf wrappers, idempotency)
     ├── base.sh                # base system, EPEL/CRB, dev tools, TZ + NTP, firewall
@@ -78,7 +80,8 @@ rocky-bootstrap/
     ├── install-web.sh         # Nginx
     ├── install-monitoring.sh  # Grafana Alloy (placeholder config)
     ├── install-laravel.sh     # PHP 8.3 + Composer + Laravel deps
-    └── install-starship.sh    # Starship prompt + FiraCode Nerd Font
+    ├── install-starship.sh    # Starship prompt + FiraCode Nerd Font
+    └── install-motd.sh        # /etc/profile.d/login.sh banner
 ```
 
 ---
@@ -92,7 +95,7 @@ rocky-bootstrap/
 ./bootstrap.sh -h | --help     # show help
 ```
 
-Valid roles: `base`, `docker`, `web`, `monitoring`, `laravel`, `starship`.
+Valid roles: `base`, `docker`, `web`, `monitoring`, `laravel`, `starship`, `motd`.
 
 You can chain them: `./bootstrap.sh base docker web`.
 

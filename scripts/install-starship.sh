@@ -141,8 +141,19 @@ main() {
     step_install_starship
     step_deploy_starship_config
     step_wire_bashrc
+
+    # Source ~/.bashrc so the rest of this run sees STARSHIP_CONFIG / PATH
+    # changes. Note: this only affects THIS script's process — the user's
+    # interactive shell still has to source it themselves (or open a new shell).
+    # Guard with `|| true` because a strict-mode bashrc could trip set -e.
+    if [[ -f "$BASHRC" ]]; then
+        log "sourcing $BASHRC (effect limited to this script's shell)"
+        # shellcheck disable=SC1090
+        source "$BASHRC" || warn "source $BASHRC returned non-zero (continuing)"
+    fi
+
     log "===== install-starship.sh complete ====="
-    log "Open a new shell (or 'source ~/.bashrc') to see the prompt."
+    log "Open a new shell (or 'source ~/.bashrc') in YOUR terminal to see the prompt."
     log "Set your terminal font to '${NERD_FONT_NAME} Nerd Font' to render glyphs correctly."
 }
 

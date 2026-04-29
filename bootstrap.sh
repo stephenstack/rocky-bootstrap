@@ -36,13 +36,17 @@ REPO_FILES=(
     scripts/install-monitoring.sh
     scripts/install-laravel.sh
     scripts/install-starship.sh
+    scripts/install-motd.sh
     packages.txt
     files/sshd_config
     files/motd
     files/starship.toml
+    files/login.sh
 )
 
-ALL_ROLES=(base docker web monitoring laravel starship)
+# motd is last on purpose — it interrogates /which services are installed
+# and renders different banner content depending on what it finds.
+ALL_ROLES=(base docker web monitoring laravel starship motd)
 
 # --- bootstrapping ---
 
@@ -128,6 +132,7 @@ role_script() {
         monitoring) echo "${SCRIPTS_DIR}/install-monitoring.sh" ;;
         laravel)    echo "${SCRIPTS_DIR}/install-laravel.sh" ;;
         starship)   echo "${SCRIPTS_DIR}/install-starship.sh" ;;
+        motd)       echo "${SCRIPTS_DIR}/install-motd.sh" ;;
         *)          return 1 ;;
     esac
 }
@@ -153,6 +158,7 @@ Roles:
   monitoring  Grafana Alloy agent (placeholder config)
   laravel     PHP 8.3, Composer, php-fpm, Nginx site stub
   starship    Starship prompt + FiraCode Nerd Font + ~/.bashrc wiring
+  motd        Dynamic login banner (figlet + conditional service summary)
 
 Environment overrides:
   TZ=Europe/Dublin              timezone applied by base.sh
@@ -219,6 +225,7 @@ Pick what to install. Enter:
   4) monitoring   (Grafana Alloy — edit endpoints!)
   5) laravel      (PHP 8.3 + Composer + Nginx site)
   6) starship     (Starship prompt + FiraCode Nerd Font)
+  7) motd         (login banner — run last for full service detection)
   a) all
   q) quit
 
@@ -244,6 +251,7 @@ EOF
             4) selected+=(monitoring) ;;
             5) selected+=(laravel) ;;
             6) selected+=(starship) ;;
+            7) selected+=(motd) ;;
             *) die "invalid selection: $n" ;;
         esac
     done

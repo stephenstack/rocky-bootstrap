@@ -22,6 +22,9 @@ set -euo pipefail
 REPO_RAW_BASE="${REPO_RAW_BASE:-https://raw.githubusercontent.com/stephenstack/rocky-bootstrap/main}"
 # Where to materialise the repo on the target host.
 BOOTSTRAP_DIR="${BOOTSTRAP_DIR:-/opt/rocky-bootstrap}"
+# Set BOOTSTRAP_REFRESH=1 to wipe the on-disk cache before fetching.
+# Useful when iterating: `curl ... | BOOTSTRAP_REFRESH=1 sudo -E bash -s -- base`
+BOOTSTRAP_REFRESH="${BOOTSTRAP_REFRESH:-0}"
 
 # Files this script needs to operate. Order matters only for `ensure_repo`'s
 # progress output — runtime ordering happens later via role_script().

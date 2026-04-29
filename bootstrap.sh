@@ -39,6 +39,7 @@ REPO_FILES=(
     scripts/install-bashrc.sh
     scripts/install-starship.sh
     scripts/install-motd.sh
+    scripts/install-lamp.sh
     packages.txt
     files/sshd_config
     files/motd
@@ -52,6 +53,11 @@ REPO_FILES=(
 #   - starship runs after bashrc to append its init block at the end
 #   - motd runs LAST so it can interrogate which services are installed
 ALL_ROLES=(base docker web monitoring laravel nodejs bashrc starship motd)
+
+# OPTIONAL_ROLES are valid role names that are NOT part of `bootstrap.sh all`.
+# Usually because they conflict with another role (e.g. lamp brings its own
+# Apache + php-fpm + MariaDB and would clash with `web` and `laravel`).
+OPTIONAL_ROLES=(lamp)
 
 # --- bootstrapping ---
 
@@ -140,6 +146,7 @@ role_script() {
         bashrc)     echo "${SCRIPTS_DIR}/install-bashrc.sh" ;;
         starship)   echo "${SCRIPTS_DIR}/install-starship.sh" ;;
         motd)       echo "${SCRIPTS_DIR}/install-motd.sh" ;;
+        lamp)       echo "${SCRIPTS_DIR}/install-lamp.sh" ;;
         *)          return 1 ;;
     esac
 }
@@ -169,6 +176,10 @@ Roles:
   starship    Starship prompt + FiraCode Nerd Font + ~/.bashrc wiring
   motd        Dynamic login banner (figlet + conditional service summary)
 
+Optional roles (NOT part of 'all' — call explicitly):
+  lamp        Upstream rConfig LAMP installer (Apache + PHP + MariaDB + Redis)
+              Conflicts with 'web' and 'laravel' — run on its own host.
+
 Environment overrides:
   TZ=Europe/Dublin              timezone applied by base.sh
   NTP_SERVERS="ie.pool.ntp.org ntp1.tcd.ie ntp2.tcd.ie"  chrony servers
@@ -180,6 +191,7 @@ Environment overrides:
   NODE_MAJOR_OVERRIDE=22        pin nodejs to a specific major (default: latest LTS)
   PROMETHEUS_REMOTE_WRITE_URL   used by monitoring role
   LOKI_PUSH_URL                 used by monitoring role
+  RCONFIG_DBPASS=...            unattended MariaDB setup for lamp role
 
 Repo cache: ${REPO_ROOT}
 Logs:       ${BOOTSTRAP_LOG}
@@ -189,7 +201,7 @@ EOF
 preflight() {
     require_root
     local role script
-    for role in "${ALL_ROLES[@]}"; do
+    for role in "${ALL_ROLES[@]}" "${OPTIONAL_ROLES[@]}"; do
         script="$(role_script "$role")"
         [[ -f "$script" ]] || die "missing role script: $script"
         [[ -x "$script" ]] || chmod +x "$script"
@@ -238,7 +250,8 @@ Pick what to install. Enter:
   7) bashrc       (curated ~/.bashrc — run before starship)
   8) starship     (Starship prompt + FiraCode Nerd Font)
   9) motd         (login banner — run last for full service detection)
-  a) all
+ 10) lamp         (rConfig LAMP installer — conflicts with web/laravel)
+  a) all          (excludes lamp)
   q) quit
 
 EOF
@@ -266,6 +279,7 @@ EOF
             7) selected+=(bashrc) ;;
             8) selected+=(starship) ;;
             9) selected+=(motd) ;;
+            10) selected+=(lamp) ;;
             *) die "invalid selection: $n" ;;
         esac
     done

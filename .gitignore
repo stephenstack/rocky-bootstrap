@@ -16,3 +16,6 @@ Thumbs.db
 files/secrets/
 *.local
 .env
+
+# Downloaded third-party installers (lamp role drops rconfig-install.sh here)
+vendor/

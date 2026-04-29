@@ -14,6 +14,10 @@ Run a single entry-point script to provision common roles:
 - **starship** — Starship prompt + FiraCode Nerd Font + `~/.bashrc` wiring
 - **motd** — dynamic login banner (figlet hostname banner + conditional service summary). Run last so it can detect what's installed.
 
+**Optional** (not part of `all` — call explicitly):
+
+- **lamp** — wraps the upstream [rConfig LAMP installer](https://dl.rconfig.com/downloads/rconfig8_centos9.sh). Conflicts with the `web` and `laravel` roles — run on its own host. Set `RCONFIG_DBPASS=...` for unattended MariaDB setup.
+
 Designed to be idempotent: safe to re-run after a partial failure or on an already-provisioned host.
 
 ---
@@ -86,7 +90,8 @@ rocky-bootstrap/
     ├── install-nodejs.sh      # Node.js (latest LTS auto-detected) via NodeSource
     ├── install-bashrc.sh      # curated ~/.bashrc with conditional integrations
     ├── install-starship.sh    # Starship prompt + FiraCode Nerd Font
-    └── install-motd.sh        # /etc/profile.d/login.sh banner
+    ├── install-motd.sh        # /etc/profile.d/login.sh banner
+    └── install-lamp.sh        # delegates to upstream rConfig LAMP installer (optional)
 ```
 
 ---
@@ -100,7 +105,9 @@ rocky-bootstrap/
 ./bootstrap.sh -h | --help     # show help
 ```
 
-Valid roles: `base`, `docker`, `web`, `monitoring`, `laravel`, `nodejs`, `bashrc`, `starship`, `motd`.
+Valid roles (in `all`): `base`, `docker`, `web`, `monitoring`, `laravel`, `nodejs`, `bashrc`, `starship`, `motd`.
+
+Optional (callable but not in `all`): `lamp`.
 
 You can chain them: `./bootstrap.sh base docker web`.
 

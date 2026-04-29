@@ -323,16 +323,33 @@ main() {
 
     preflight
 
-    # Curl-pipe with no args is non-interactive (no tty for `read`). Default
-    # to running everything if stdin isn't a terminal and no args were given.
+    # No args:
+    #   - With a tty: launch the interactive wizard.
+    #   - Without a tty (curl-pipe, ansible exec, etc.): refuse to guess.
+    #     Running 'all' implicitly is too destructive to be a sensible default,
+    #     and the wizard can't read input from a closed stdin.
     if [[ $# -eq 0 ]]; then
         if [[ -t 0 ]]; then
             wizard
-        else
-            log "no tty + no args — defaulting to 'all'"
-            run_all
+            exit 0
         fi
-        exit 0
+
+        cat >&2 <<EOF
+[bootstrap] no roles specified, and stdin is not a terminal.
+[bootstrap] refusing to run 'all' implicitly — too destructive for a silent default.
+
+To run a specific role via curl-pipe, pass it after '-s --':
+
+    curl -fsSL ${REPO_RAW_BASE}/bootstrap.sh | sudo bash -s -- base
+    curl -fsSL ${REPO_RAW_BASE}/bootstrap.sh | sudo bash -s -- base nodejs bashrc starship
+    curl -fsSL ${REPO_RAW_BASE}/bootstrap.sh | sudo bash -s -- all
+
+To use the interactive wizard, download first then run:
+
+    curl -fsSL ${REPO_RAW_BASE}/bootstrap.sh -o /tmp/bootstrap.sh
+    sudo bash /tmp/bootstrap.sh
+EOF
+        exit 2
     fi
 
     if [[ "$1" == "all" ]]; then

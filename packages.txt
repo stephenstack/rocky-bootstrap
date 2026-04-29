@@ -37,9 +37,10 @@ firewalld
 fail2ban
 policycoreutils-python-utils
 
-# --- repos + build basics ---
-epel-release
-dnf-plugins-core
+# --- build basics ---
+# Note: epel-release + dnf-plugins-core are handled by step_install_epel
+# in scripts/base.sh — they must be installed before EPEL packages
+# (htop, fail2ban, btop, fzf, jq, ripgrep) can resolve.
 git
 make
 

@@ -1,32 +1,108 @@
 #!/usr/bin/env bash
 # bootstrap.sh — main entry point for rocky-bootstrap.
 #
-# Usage:
-#   ./bootstrap.sh                  # interactive wizard
-#   ./bootstrap.sh <role> [...]     # run one or more roles
-#   ./bootstrap.sh all              # run every role in recommended order
-#   ./bootstrap.sh -h | --help
+# Two ways to run:
+#
+# 1) Local clone:
+#      ./bootstrap.sh                  # interactive wizard
+#      ./bootstrap.sh base             # single role
+#      ./bootstrap.sh all              # everything
+#
+# 2) Remote (curl-pipe — fetches the rest of the repo on demand):
+#      curl -fsSL https://raw.githubusercontent.com/stephenstack/rocky-bootstrap/main/bootstrap.sh \
+#        | sudo bash -s -- base
 #
 # Roles: base, docker, web, monitoring, laravel
-#
 # All output is mirrored to /var/log/bootstrap.log.
 
 set -euo pipefail
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SCRIPTS_DIR="${REPO_ROOT}/scripts"
+# --- self-fetch config ---
+# Where to grab the rest of the repo from when invoked via curl-pipe.
+REPO_RAW_BASE="${REPO_RAW_BASE:-https://raw.githubusercontent.com/stephenstack/rocky-bootstrap/main}"
+# Where to materialise the repo on the target host.
+BOOTSTRAP_DIR="${BOOTSTRAP_DIR:-/opt/rocky-bootstrap}"
+
+# Files this script needs to operate. Order matters only for `ensure_repo`'s
+# progress output — runtime ordering happens later via role_script().
+REPO_FILES=(
+    scripts/common.sh
+    scripts/base.sh
+    scripts/install-docker.sh
+    scripts/install-web.sh
+    scripts/install-monitoring.sh
+    scripts/install-laravel.sh
+    packages.txt
+    files/sshd_config
+    files/motd
+)
+
+ALL_ROLES=(base docker web monitoring laravel)
+
+# --- bootstrapping ---
+
+# Resolve the directory this script lives in, OR empty string if we were
+# piped to bash (no BASH_SOURCE, no $0 path on disk).
+self_dir() {
+    local src="${BASH_SOURCE[0]:-}"
+    if [[ -n "$src" && -f "$src" ]]; then
+        (cd "$(dirname "$src")" && pwd)
+        return 0
+    fi
+    echo ""
+}
+
+# Make sure we have a working copy of the repo on disk. Idempotent: only
+# downloads files that are missing. Safe to re-run.
+ensure_repo() {
+    local sd
+    sd="$(self_dir)"
+
+    # If we're sitting next to the repo already, use it in place.
+    if [[ -n "$sd" && -f "${sd}/scripts/common.sh" && -f "${sd}/packages.txt" ]]; then
+        REPO_ROOT="$sd"
+        return 0
+    fi
+
+    # Otherwise we were piped — fetch the repo.
+    if ! command -v curl >/dev/null 2>&1; then
+        echo "[bootstrap] curl not found; cannot self-fetch repo" >&2
+        echo "[bootstrap] install curl first: dnf install -y curl" >&2
+        exit 1
+    fi
+
+    echo "[bootstrap] piped invocation — fetching repo to ${BOOTSTRAP_DIR}"
+    install -d -m 0755 "${BOOTSTRAP_DIR}/scripts" "${BOOTSTRAP_DIR}/files"
+
+    local rel dst
+    for rel in "${REPO_FILES[@]}"; do
+        dst="${BOOTSTRAP_DIR}/${rel}"
+        if [[ -f "$dst" && -s "$dst" ]]; then
+            echo "[bootstrap]   skip (cached): ${rel}"
+            continue
+        fi
+        echo "[bootstrap]   fetch: ${rel}"
+        install -d -m 0755 "$(dirname "$dst")"
+        curl -fsSL "${REPO_RAW_BASE}/${rel}" -o "${dst}" \
+            || { echo "[bootstrap] failed to fetch ${rel}" >&2; exit 1; }
+    done
+    chmod +x "${BOOTSTRAP_DIR}/bootstrap.sh" 2>/dev/null || true
+    chmod +x "${BOOTSTRAP_DIR}"/scripts/*.sh
+
+    REPO_ROOT="${BOOTSTRAP_DIR}"
+}
+
+ensure_repo
 export REPO_ROOT
+SCRIPTS_DIR="${REPO_ROOT}/scripts"
 
 # shellcheck source=scripts/common.sh
 source "${SCRIPTS_DIR}/common.sh"
 
 BOOTSTRAP_TAG="bootstrap"
 
-# Roles, in the order `all` should run them. Order matters:
-# base first (creates user, repos, firewall), then services that depend on it.
-ALL_ROLES=(base docker web monitoring laravel)
+# --- role dispatch ---
 
-# role -> script filename
 role_script() {
     case "$1" in
         base)       echo "${SCRIPTS_DIR}/base.sh" ;;
@@ -48,27 +124,32 @@ Usage:
   $(basename "$0") all             run every role in order
   $(basename "$0") -h | --help     show this help
 
+Curl-pipe form:
+  curl -fsSL ${REPO_RAW_BASE}/bootstrap.sh | sudo bash -s -- base
+  curl -fsSL ${REPO_RAW_BASE}/bootstrap.sh | sudo bash -s -- all
+
 Roles:
-  base        system update, packages, admin user, SSH hardening, firewall
+  base        SELinux off, projects dir, packages, EU/Dublin TZ + .ie NTP, firewalld, fail2ban
   docker      Docker CE + compose plugin
   web         Nginx
   monitoring  Grafana Alloy agent (placeholder config)
   laravel     PHP 8.3, Composer, php-fpm, Nginx site stub
 
 Environment overrides:
-  ADMIN_USER=admin              admin user created/used by scripts
-  TZ=UTC                        timezone applied by base.sh
-  APPLY_SSH_CONFIG=no           set to "yes" to overwrite /etc/ssh/sshd_config
+  TZ=Europe/Dublin              timezone applied by base.sh
+  NTP_SERVERS="ie.pool.ntp.org ntp1.tcd.ie ntp2.tcd.ie"  chrony servers
+  REPO_RAW_BASE=...             override the raw.githubusercontent base URL
+  BOOTSTRAP_DIR=/opt/rocky-bootstrap  where to materialise the repo
   APP_DIR=/var/www/laravel      app directory used by laravel role
   APP_DOMAIN=_                  nginx server_name for laravel role
   PROMETHEUS_REMOTE_WRITE_URL   used by monitoring role
   LOKI_PUSH_URL                 used by monitoring role
 
-Logs: ${BOOTSTRAP_LOG}
+Repo cache: ${REPO_ROOT}
+Logs:       ${BOOTSTRAP_LOG}
 EOF
 }
 
-# Confirm we have an executable script for each role.
 preflight() {
     require_root
     local role script
@@ -77,7 +158,6 @@ preflight() {
         [[ -f "$script" ]] || die "missing role script: $script"
         [[ -x "$script" ]] || chmod +x "$script"
     done
-    # Make sure the log file exists and is writable.
     : >>"$BOOTSTRAP_LOG" || die "cannot write to $BOOTSTRAP_LOG"
 }
 
@@ -86,8 +166,6 @@ run_role() {
     local script
     script="$(role_script "$role")" || die "unknown role: $role"
     log ">>> running role: $role ($script)"
-    # Run via bash so we don't depend on the +x bit and so set -e in the parent
-    # doesn't swallow useful info from the child.
     if bash "$script"; then
         log "<<< role complete: $role"
     else
@@ -97,7 +175,6 @@ run_role() {
     fi
 }
 
-# Interactive menu. Lets the user pick one or more roles.
 wizard() {
     cat <<EOF
 
@@ -106,6 +183,7 @@ wizard() {
 ==============================================
  Host: $(hostname)
  OS:   $(. /etc/os-release 2>/dev/null && echo "${PRETTY_NAME:-unknown}")
+ Repo: ${REPO_ROOT}
  Log:  ${BOOTSTRAP_LOG}
 ==============================================
 
@@ -127,7 +205,7 @@ EOF
 
     local choice
     read -r -p "Selection: " choice
-    choice="${choice,,}"   # lowercase
+    choice="${choice,,}"
 
     case "$choice" in
         q|quit|exit) log "user quit"; exit 0 ;;
@@ -151,14 +229,12 @@ EOF
     run_roles "${selected[@]}"
 }
 
-# Run a list of roles, de-duplicated, with `base` always first if present.
 run_roles() {
     local -a wanted=("$@")
     local -a ordered=()
     local seen=""
     local r
 
-    # Force base to the front if it's in the list.
     for r in "${wanted[@]}"; do
         if [[ "$r" == "base" ]]; then
             ordered+=(base)
@@ -167,7 +243,6 @@ run_roles() {
         fi
     done
 
-    # Append the rest in the order given, skipping duplicates.
     for r in "${wanted[@]}"; do
         if [[ "$seen" != *"|$r|"* ]]; then
             ordered+=("$r")
@@ -195,8 +270,15 @@ main() {
 
     preflight
 
+    # Curl-pipe with no args is non-interactive (no tty for `read`). Default
+    # to running everything if stdin isn't a terminal and no args were given.
     if [[ $# -eq 0 ]]; then
-        wizard
+        if [[ -t 0 ]]; then
+            wizard
+        else
+            log "no tty + no args — defaulting to 'all'"
+            run_all
+        fi
         exit 0
     fi
 
@@ -205,7 +287,6 @@ main() {
         exit 0
     fi
 
-    # Validate every arg before running anything.
     local arg
     for arg in "$@"; do
         role_script "$arg" >/dev/null || { usage; die "unknown role: $arg"; }

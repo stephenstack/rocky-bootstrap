@@ -16,22 +16,43 @@ Designed to be idempotent: safe to re-run after a partial failure or on an alrea
 
 ## Quick start
 
+### Option A — one-shot curl (no git needed)
+
+`bootstrap.sh` self-fetches the rest of the repo to `/opt/rocky-bootstrap` on first run, so you can pipe it straight to bash on a fresh box:
+
 ```bash
-# As root (or via sudo) on a fresh Rocky 9.7 host:
-git clone https://github.com/youruser/rocky-bootstrap.git /opt/rocky-bootstrap
-cd /opt/rocky-bootstrap
-chmod +x bootstrap.sh scripts/*.sh
-
-# Interactive wizard:
-./bootstrap.sh
-
-# Or non-interactive (single role):
-./bootstrap.sh base
-./bootstrap.sh docker
+# Run a single role:
+curl -fsSL https://raw.githubusercontent.com/stephenstack/rocky-bootstrap/main/bootstrap.sh \
+  | sudo bash -s -- base
 
 # Or run everything:
-./bootstrap.sh all
+curl -fsSL https://raw.githubusercontent.com/stephenstack/rocky-bootstrap/main/bootstrap.sh \
+  | sudo bash -s -- all
 ```
+
+When piped without args (no tty), it defaults to `all`. When run with args, only those roles run.
+
+### Option B — clone, then run
+
+```bash
+sudo dnf install -y git
+sudo git clone https://github.com/stephenstack/rocky-bootstrap.git /opt/rocky-bootstrap
+cd /opt/rocky-bootstrap
+
+sudo ./bootstrap.sh             # interactive wizard
+sudo ./bootstrap.sh base        # single role
+sudo ./bootstrap.sh all         # everything
+```
+
+### Re-running
+
+After the first run the repo lives at `/opt/rocky-bootstrap`. To pick up changes:
+
+```bash
+sudo git -C /opt/rocky-bootstrap pull && sudo /opt/rocky-bootstrap/bootstrap.sh base
+```
+
+Or just re-curl — `ensure_repo` in `bootstrap.sh` skips files already cached on disk. Delete `/opt/rocky-bootstrap` to force a clean fetch.
 
 All output is mirrored to `/var/log/bootstrap.log`.
 

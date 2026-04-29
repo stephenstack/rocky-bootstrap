@@ -145,11 +145,16 @@ main() {
     # Source ~/.bashrc so the rest of this run sees STARSHIP_CONFIG / PATH
     # changes. Note: this only affects THIS script's process — the user's
     # interactive shell still has to source it themselves (or open a new shell).
-    # Guard with `|| true` because a strict-mode bashrc could trip set -e.
+    #
+    # /etc/bashrc on Rocky 9 references unset variables (BASHRCSOURCED, etc.)
+    # which trips our `set -u`. Drop nounset for the duration of the source,
+    # and use `|| true` in case some other strict-mode shenanigan blows up.
     if [[ -f "$BASHRC" ]]; then
         log "sourcing $BASHRC (effect limited to this script's shell)"
+        set +u
         # shellcheck disable=SC1090
         source "$BASHRC" || warn "source $BASHRC returned non-zero (continuing)"
+        set -u
     fi
 
     log "===== install-starship.sh complete ====="

@@ -35,12 +35,14 @@ REPO_FILES=(
     scripts/install-web.sh
     scripts/install-monitoring.sh
     scripts/install-laravel.sh
+    scripts/install-starship.sh
     packages.txt
     files/sshd_config
     files/motd
+    files/starship.toml
 )
 
-ALL_ROLES=(base docker web monitoring laravel)
+ALL_ROLES=(base docker web monitoring laravel starship)
 
 # --- bootstrapping ---
 
@@ -125,6 +127,7 @@ role_script() {
         web)        echo "${SCRIPTS_DIR}/install-web.sh" ;;
         monitoring) echo "${SCRIPTS_DIR}/install-monitoring.sh" ;;
         laravel)    echo "${SCRIPTS_DIR}/install-laravel.sh" ;;
+        starship)   echo "${SCRIPTS_DIR}/install-starship.sh" ;;
         *)          return 1 ;;
     esac
 }
@@ -149,6 +152,7 @@ Roles:
   web         Nginx
   monitoring  Grafana Alloy agent (placeholder config)
   laravel     PHP 8.3, Composer, php-fpm, Nginx site stub
+  starship    Starship prompt + FiraCode Nerd Font + ~/.bashrc wiring
 
 Environment overrides:
   TZ=Europe/Dublin              timezone applied by base.sh
@@ -214,6 +218,7 @@ Pick what to install. Enter:
   3) web          (Nginx)
   4) monitoring   (Grafana Alloy — edit endpoints!)
   5) laravel      (PHP 8.3 + Composer + Nginx site)
+  6) starship     (Starship prompt + FiraCode Nerd Font)
   a) all
   q) quit
 
@@ -238,6 +243,7 @@ EOF
             3) selected+=(web) ;;
             4) selected+=(monitoring) ;;
             5) selected+=(laravel) ;;
+            6) selected+=(starship) ;;
             *) die "invalid selection: $n" ;;
         esac
     done

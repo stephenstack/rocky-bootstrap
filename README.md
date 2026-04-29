@@ -4,11 +4,12 @@ Reusable, modular bootstrap system for fresh **Rocky Linux 9.7** servers.
 
 Run a single entry-point script to provision common roles:
 
-- **base** — system updates, core packages, admin user, SSH hardening
+- **base** — system updates, core packages, EPEL/CRB, dev tooling (fzf, zoxide, eza, btop, ripgrep, jq), Europe/Dublin TZ + .ie NTP, firewalld, fail2ban
 - **docker** — Docker CE + Compose plugin
 - **web** — Nginx with sane defaults
 - **monitoring** — Grafana Alloy agent (placeholder, edit endpoints)
 - **laravel** — PHP 8.3 + Composer + Nginx site stub
+- **starship** — Starship prompt + FiraCode Nerd Font + `~/.bashrc` wiring
 
 Designed to be idempotent: safe to re-run after a partial failure or on an already-provisioned host.
 
@@ -68,14 +69,16 @@ rocky-bootstrap/
 ├── .gitignore
 ├── files/                    # config files copied to target system
 │   ├── sshd_config           # hardened sshd config (review before deploying!)
-│   └── motd                  # login banner
+│   ├── motd                  # login banner
+│   └── starship.toml         # Starship prompt config (catppuccin_mocha)
 └── scripts/
-    ├── common.sh             # shared helpers (logging, dnf wrappers, idempotency)
-    ├── base.sh               # base system + admin user + SSH
-    ├── install-docker.sh     # Docker CE + compose plugin
-    ├── install-web.sh        # Nginx
-    ├── install-monitoring.sh # Grafana Alloy (placeholder config)
-    └── install-laravel.sh    # PHP 8.3 + Composer + Laravel deps
+    ├── common.sh              # shared helpers (logging, dnf wrappers, idempotency)
+    ├── base.sh                # base system, EPEL/CRB, dev tools, TZ + NTP, firewall
+    ├── install-docker.sh      # Docker CE + compose plugin
+    ├── install-web.sh         # Nginx
+    ├── install-monitoring.sh  # Grafana Alloy (placeholder config)
+    ├── install-laravel.sh     # PHP 8.3 + Composer + Laravel deps
+    └── install-starship.sh    # Starship prompt + FiraCode Nerd Font
 ```
 
 ---
@@ -89,7 +92,7 @@ rocky-bootstrap/
 ./bootstrap.sh -h | --help     # show help
 ```
 
-Valid roles: `base`, `docker`, `web`, `monitoring`, `laravel`.
+Valid roles: `base`, `docker`, `web`, `monitoring`, `laravel`, `starship`.
 
 You can chain them: `./bootstrap.sh base docker web`.
 
